@@ -6,17 +6,15 @@ pipeline {
         stage('Build') {
             steps {
                 bat """
-                    python -m pip install --upgrade pip
-                    pip install -r requirements.txt
+                    pip install pipenv
+                    pipenv --python python sync
                 """
             }
         }
 
         stage('Test') {
             steps {
-                bat """
-                    pytest
-                """
+                bat "pipenv run pytest"
             }
         }
 
@@ -25,6 +23,7 @@ pipeline {
                 anyOf { branch 'master'; branch 'release' }
             }
             steps {
+                // Windows does not support "zip -r"
                 powershell "Compress-Archive -Path lib -DestinationPath sbdl.zip -Force"
             }
         }
