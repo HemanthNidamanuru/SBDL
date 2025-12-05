@@ -7,7 +7,7 @@ pipeline {
             steps {
                 bat """
                     pip install pipenv
-                    pipenv --python python sync
+                    pipenv --python "C:\\Users\\heymo\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" sync
                 """
             }
         }
@@ -23,7 +23,6 @@ pipeline {
                 anyOf { branch 'master'; branch 'release' }
             }
             steps {
-                // Windows does not support "zip -r"
                 powershell "Compress-Archive -Path lib -DestinationPath sbdl.zip -Force"
             }
         }
