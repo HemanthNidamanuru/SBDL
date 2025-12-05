@@ -2,24 +2,31 @@ pipeline {
     agent any
 
     stages {
+
         stage('Build') {
             steps {
-               bat 'pipenv --python python3 sync'
+                bat """
+                    python -m pip install --upgrade pip
+                    pip install -r requirements.txt
+                """
             }
         }
+
         stage('Test') {
             steps {
-               bat 'pipenv run pytest'
+                bat """
+                    pytest
+                """
             }
         }
+
         stage('Package') {
-	    when{
-		    anyOf{ branch "master" ; branch 'release' }
-	    }
+            when {
+                anyOf { branch 'master'; branch 'release' }
+            }
             steps {
-               bat 'zip -r sbdl.zip lib'
+                powershell "Compress-Archive -Path lib -DestinationPath sbdl.zip -Force"
             }
         }
-	
     }
 }
