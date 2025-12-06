@@ -2,39 +2,84 @@ pipeline {
     agent any
 
     stages {
+
         stage('Build') {
             steps {
-               sh 'pipenv --python python3 sync'
+                bat """
+                    echo ==== Installing Pipenv ====
+                    pip install pipenv
+
+                    echo ==== Syncing Virtual Environment ====
+                    pipenv --python "C:\\Users\\heymo\\AppData\\Local\\Programs\\Python\\Python310\\python.exe" sync
+                """
             }
         }
+
         stage('Test') {
             steps {
-               sh 'pipenv run pytest'
+                bat """
+                    echo ==== Running Pytest ====
+                    pipenv run pytest
+                """
             }
         }
+
         stage('Package') {
-	    when{
-		    anyOf{ branch "master" ; branch 'release' }
-	    }
+            when {
+                anyOf {
+                    branch 'master'
+                    branch 'release'
+                }
+            }
             steps {
-               sh 'zip -r sbdl.zip lib'
+                bat """
+                    echo ==== Creating Deployment Package ====
+                    powershell -Command "Compress-Archive -Force .\\lib sbdl.zip"
+                """
             }
         }
-	stage('Release') {
-	   when{
-	      branch 'release'
-	   }
-           steps {
-              sh "scp -i /home/prashant/cred/edge-node_key.pem -o 'StrictHostKeyChecking no' -r sbdl.zip log4j.properties sbdl_main.py sbdl_submit.sh conf prashant@40.117.123.105:/home/prashant/sbdl-qa"
-           }
+
+        stage('Release') {
+            when {
+                branch 'release'
+            }
+            steps {
+                bat """
+                    echo ==== Deploying to QA Environment ====
+                    mkdir C:\\SBDL-Deploy\\QA
+                    xcopy /E /Y sbdl.zip C:\\SBDL-Deploy\\QA\\
+                    xcopy /E /Y conf C:\\SBDL-Deploy\\QA\\conf\\
+                    xcopy /E /Y log4j.properties C:\\SBDL-Deploy\\QA\\
+                    xcopy /E /Y sbdl_main.py C:\\SBDL-Deploy\\QA\\
+                    xcopy /E /Y sbdl_submit.sh C:\\SBDL-Deploy\\QA\\
+                """
+            }
         }
-	stage('Deploy') {
-	   when{
-	      branch 'master'
-	   }
-           steps {
-               sh "scp -i /home/prashant/cred/edge-node_key.pem -o 'StrictHostKeyChecking no' -r sbdl.zip log4j.properties sbdl_main.py sbdl_submit.sh conf prashant@40.117.123.105:/home/prashant/sbdl-prod"
-           }
+
+        stage('Deploy') {
+            when {
+                branch 'master'
+            }
+            steps {
+                bat """
+                    echo ==== Deploying to PROD Environment ====
+                    mkdir C:\\SBDL-Deploy\\PROD
+                    xcopy /E /Y sbdl.zip C:\\SBDL-Deploy\\PROD\\
+                    xcopy /E /Y conf C:\\SBDL-Deploy\\PROD\\conf\\
+                    xcopy /E /Y log4j.properties C:\\SBDL-Deploy\\PROD\\
+                    xcopy /E /Y sbdl_main.py C:\\SBDL-Deploy\\PROD\\
+                    xcopy /E /Y sbdl_submit.sh C:\\SBDL-Deploy\\PROD\\
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline Completed Successfully!"
+        }
+        failure {
+            echo "Pipeline Failed!"
         }
     }
 }
